@@ -1,0 +1,26 @@
+.order-details {
+    border: 1px solid #dee2e6;
+    padding: 20px;
+    margin-top: 20px;
+    background-color: #ffffff;
+    border-radius: 5px;
+  }
+  
+  .btn-accept, .btn-decline {
+    margin-right: 10px;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  
+  .btn-accept {
+    background-color: #28a745;
+    color: white;
+  }
+  
+  .btn-decline {
+    background-color: #dc3545;
+    color: white;
+  }
+  

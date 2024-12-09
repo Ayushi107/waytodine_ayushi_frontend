@@ -1,0 +1,16 @@
+.payment-dashboard {
+    padding: 20px;
+    flex: 1;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+  }
+  
+  .btn-mark-done {
+    padding: 10px 15px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  

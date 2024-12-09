@@ -1,0 +1,49 @@
+/* Custom button styling for the orders list */
+.btn-custom {
+    border-radius: 20px !important; /* Ensure border-radius is applied */
+    background-color: rgba(210, 105, 30, 0.1);
+    color: chocolate;
+    padding: 8px 15px;
+    /* font-weight: bold !important; Force bold text */
+    border: none;
+    outline: none !important;
+    display: inline-block; /* Ensure buttons are not full width */
+
+    /* box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15); */
+    /* transition: background-color 0.3s ease, transform 0.2s; Smooth transition effect */
+}
+
+/* Hover effect */
+.btn-custom:hover {
+    background-color: rgba(210, 105, 30, 0.3);
+    transform: translateY(-2px);
+}
+
+/* Success button customization */
+.btn-custom.btn-success {
+    background-color: rgba(40, 167, 69, 0.1) !important; /* Ensure light green background for success */
+    color: green !important; /* Force green text */
+    outline: none !important;
+}
+
+/* Warning button customization */
+.btn-custom.btn-warning {
+    background-color: rgba(255, 193, 7, 0.1) !important; /* Ensure light yellow background for warning */
+    color: #ffc107 !important; /* Force yellowish text */
+    outline: none !important;
+}
+
+.btn-custom.btn-primary {
+    display: inline-block; /* Fix full-width issue */
+    background-color: rgba(105, 70, 230, 0.1) !important; /* Ensure light yellow background for warning */
+    color: rgb(105, 70, 230) !important; /* Force yellowish text */
+    outline: none;
+}
+
+.btn-custom.btn-danger {
+    display: inline-block; /* Fix full-width issue */
+    background-color: rgba(227, 70, 70, 0.1) !important; /* Ensure light yellow background for warning */
+    color: rgb(222, 29, 29) !important; /* Force yellowish text */
+    outline: none;
+}
+

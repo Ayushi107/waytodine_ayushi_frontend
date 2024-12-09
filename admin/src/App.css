@@ -1,0 +1,21 @@
+/* App.css */
+body {
+  margin: 0; /* Remove default margin */
+  font-family: Arial, sans-serif; /* Set a default font */
+}
+
+
+.app-container {
+  display: flex; /* Use flexbox for layout */
+  background-color: #f0f0f0; /* Set the grey background for the entire app */
+  min-height: 100vh; /* Ensure it takes full height */
+}
+
+.sidebar-container {
+  width: 250px; /* Fixed width for the sidebar */
+}
+
+.dashboard-container {
+  flex-grow: 1; /* Allow the dashboard to take the remaining space */
+  padding: 20px; /* Add some padding around the dashboard */
+}

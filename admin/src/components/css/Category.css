@@ -1,0 +1,24 @@
+.category-table {
+    table-layout: fixed;
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .category-table th,
+  .category-table td {
+    text-align: left;
+    padding: 10px;
+  }
+  
+  .category-table th:nth-child(3),
+  .category-table td:nth-child(3) {
+    width: 15%; /* This specifically applies to the Image column */
+  }
+  
+  .category-image {
+    width: 100%;
+    max-width: 80px; /* Maximum image width */
+    max-height: 80px; /* Maximum image height */
+    object-fit: contain;
+  }
+  
