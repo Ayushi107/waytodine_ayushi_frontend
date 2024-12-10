@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Table, Input, Button } from 'reactstrap'; // Reactstrap components
+import { Container, Table, Input, Button,Modal, ModalHeader, ModalBody, ModalFooter } from 'reactstrap'; // Reactstrap components
 import axios from 'axios';
 import API_BASE_URL from '../Apiconfig';
 
 const DeliveryPartners = () => {
 
     const [drivers, setDrivers] = useState([]);
+    const [selectedDriver, setSelectedDriver] = useState(null); // To store the selected driver details
+    const [modalOpen, setModalOpen] = useState(false); // Modal state
     const [search, setSearch] = useState('');
     const [loading, setLoading] = useState(false);
     const [pagination, setPagination] = useState({
@@ -25,7 +27,7 @@ const DeliveryPartners = () => {
             });
 
             console.log(response);
-            
+
             if (response.data) {
                 setDrivers(response.data.data.$values); // Set orders
                 setPagination({
@@ -75,6 +77,13 @@ const DeliveryPartners = () => {
     };
 
 
+    const handleDriverDetails = (driver) => {
+        setSelectedDriver(driver); // Set the selected driver object
+        setModalOpen(true); // Open the modal
+    };
+
+    const toggleModal = () => setModalOpen(!modalOpen);
+
 
 
 
@@ -111,7 +120,7 @@ const DeliveryPartners = () => {
                             <th>Phone</th>
                             <th>Availability</th>
                             <th>IsVerified</th>
-
+                            <th>Details</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -130,6 +139,14 @@ const DeliveryPartners = () => {
                                             disabled={driver.status !== 1}
                                             onChange={() => handleVerifyDriver(driver.deliveryPersonId)}
                                         />
+                                    </td>
+                                    <td>
+                                        <Button
+                                            color="info"
+                                            onClick={() => handleDriverDetails(driver)}
+                                        >
+                                            View Details
+                                        </Button>
                                     </td>
                                 </tr>
                             ))
@@ -157,6 +174,25 @@ const DeliveryPartners = () => {
                     Next
                 </Button>
             </div>
+
+             {/* Modal for Driver Details */}
+             {selectedDriver && (
+                <Modal isOpen={modalOpen} toggle={() => setModalOpen(!modalOpen)}>
+                    <ModalHeader toggle={() => setModalOpen(!modalOpen)}>
+                        Driver Details
+                    </ModalHeader>
+                    <ModalBody>
+                        <p><strong>ID:</strong> {selectedDriver.deliveryPersonId}</p>
+                        <p><strong>LicenseNumber:</strong> {selectedDriver.drivingLicenseNumber}</p>
+                        <p><strong>LicenseDocument:</strong> {selectedDriver.licenseDocument}</p>
+                        <p><strong>VehicleNumber:</strong> {selectedDriver.vehicleNumber}</p>
+                        <p><strong>VehicleType:</strong> {selectedDriver.vehicleType}</p>
+                    </ModalBody>
+                    <ModalFooter>
+                        <Button color="secondary" onClick={() => setModalOpen(false)}>Close</Button>
+                    </ModalFooter>
+                </Modal>
+            )}
         </Container >
 
     );

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Table, Input, Button } from 'reactstrap'; // Reactstrap components
+import { Container, Table, Input, Button, Modal, ModalHeader, ModalBody, ModalFooter } from 'reactstrap'; // Reactstrap components
 import axios from 'axios';
 import API_BASE_URL from '../Apiconfig';
 
@@ -8,6 +8,8 @@ const RestaurantList = () => {
     const [restaurants, setRestaurants] = useState([]);
     const [search, setSearch] = useState('');
     const [loading, setLoading] = useState(false);
+    const [modal, setModal] = useState(false);
+    const [restaurantDetails, setRestaurantDetails] = useState(null);
     const [pagination, setPagination] = useState({
         pageNumber: 1,
         pageSize: 5, // Default page size
@@ -20,8 +22,8 @@ const RestaurantList = () => {
         setLoading(true);
         try {
             const response = await axios.post(`${API_BASE_URL}Listing/get-Restaurants`, {
-                pageNumber:pagination.pageNumber,
-                pageSize:pagination.pageSize,
+                pageNumber: pagination.pageNumber,
+                pageSize: pagination.pageSize,
             });
 
             if (response.data) {
@@ -96,10 +98,10 @@ const RestaurantList = () => {
         try {
             const response = await axios.post(`${API_BASE_URL}Admin/verify/restaurant-user`, { VerificationId: resId });
             console.log(response);
-            
+
             // if (response.status === 200) {
-                alert("Restaurant verified successfully!");
-                fetchRestaurants(pagination.pageNumber, pagination.pageSize);
+            alert("Restaurant verified successfully!");
+            fetchRestaurants(pagination.pageNumber, pagination.pageSize);
             // } else {
             //     alert("Verification failed. Please try again.");
             // }
@@ -108,6 +110,31 @@ const RestaurantList = () => {
             alert("Something went wrong. Please try again.");
         }
     };
+
+    const handleRestaurantDetails = async (restaurantId) => {
+        setLoading(true);
+        try {
+            const response = await axios.post(`${API_BASE_URL}Listing/get-Restaurant-details`, {
+                RestaurantId: restaurantId,
+            });
+  
+            console.log(response.data.$values[0]);
+            
+            if (response.data) {
+                setRestaurantDetails(response.data.$values[0]);
+                setModal(true); // Open the modal
+            } else {
+                alert('No restaurant details found.');
+            }
+        } catch (error) {
+            console.error('Error fetching restaurant details:', error);
+            alert('Something went wrong. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const toggleModal = () => setModal(!modal);
 
 
     // const [search, setSearch] = useState('');
@@ -147,6 +174,7 @@ const RestaurantList = () => {
                             <th>Country</th>
                             <th>RestaurantDocument</th>
                             <th>IsVerified</th>
+                            <th>View Details</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -165,6 +193,14 @@ const RestaurantList = () => {
                                             disabled={restaurant.status !== 1}
                                             onChange={() => handleVerifyRestaurant(restaurant.restaurantId)}
                                         />
+                                    </td>
+                                    <td>
+                                        <Button
+                                            color="info"
+                                            onClick={() => handleRestaurantDetails(restaurant.restaurantId)}
+                                        >
+                                            View Details
+                                        </Button>
                                     </td>
                                 </tr>
                             ))
@@ -194,6 +230,28 @@ const RestaurantList = () => {
                 </Button>
             </div>
 
+
+            {/* Modal for viewing restaurant details */}
+            <Modal isOpen={modal} toggle={toggleModal}>
+                <ModalHeader toggle={toggleModal}>Restaurant Details</ModalHeader>
+                <ModalBody>
+                    {restaurantDetails ? (
+                        <div>
+                            <p><strong>ID:</strong> {restaurantDetails.restaurantDetailsId}</p>
+                            <p><strong>Current Offer Discount:</strong> {restaurantDetails.currentOfferDiscountRate}</p>
+                            <p><strong>Opening Hours (WeekDays):</strong> {restaurantDetails.openingHoursWeekdays}</p>
+                            <p><strong>Opening Hours (Weekend):</strong> {restaurantDetails.openingHoursWeekends}</p>
+                            <p><strong>Specialites:</strong> {restaurantDetails.specialities}</p>
+
+                        </div>
+                    ) : (
+                        <p>No details available</p>
+                    )}
+                </ModalBody>
+                <ModalFooter>
+                    <Button color="secondary" onClick={toggleModal}>Close</Button>
+                </ModalFooter>
+            </Modal>
 
         </Container >
 

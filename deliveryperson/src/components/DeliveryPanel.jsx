@@ -11,11 +11,14 @@ import axios from 'axios';
 import { API_BASE_URL } from './Apiconfig';
 const DeliveryPanel = () => {
   const [orderStatus, setOrderStatus] = useState('assigned');
+  
   const [orders, setOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState([]);
   const [modalShow, setModalShow] = useState(false);
-  const [otp, setOtp] = useState(""); // For OTP input
+  const [pickupLocation, setPickupLocation] = useState(null);
+  const [dropoffLocation, setDropoffLocation] = useState(null);  const [otp, setOtp] = useState(""); // For OTP input
   const [otpModalShow, setOtpModalShow] = useState(false); // For OTP modal visibility
+  const [StartTrackingMoal, setStartTrackingModal] = useState(false);
   const [currentOrderId, setCurrentOrderId] = useState(null);
   const [driver, setDriver] = useState(null);
   const navigate = useNavigate();
@@ -83,8 +86,15 @@ const DeliveryPanel = () => {
     try {
       const response = await axios.post(`${API_BASE_URL}Driver/get-order-details`, { DriverId: orderId });
       setSelectedOrder(response.data);
-      console.log(response.data);
+      console.log(response.data, "order details");
+      const pickupCoords = response.data.pickupLocation.split(',').map(coord => parseFloat(coord.trim()));
+      const dropoffCoords = response.data.dropoffLocation.split(',').map(coord => parseFloat(coord.trim()));
 
+      const pickup = { lat: pickupCoords[0], lng: pickupCoords[1] };
+      const dropoff = { lat: dropoffCoords[0], lng: dropoffCoords[1] };
+
+      setPickupLocation(pickup);
+      setDropoffLocation(dropoff);
 
     } catch (error) {
       console.error("Error fetching order details:", error);
@@ -195,6 +205,15 @@ const DeliveryPanel = () => {
     }
   };
 
+  const handleStartTracking = async (order) => {
+    console.log('Start tracking for order:', order.orderId);
+    const response = await axios.post(`${API_BASE_URL}Driver/get-order-details`, { DriverId: order.orderId });
+    setSelectedOrder(response.data);
+    setStartTrackingModal(true);
+    // Add your tracking logic here
+    // For example, redirect to a tracking page with order details
+  };
+
 
   return (
     <Container fluid>
@@ -281,16 +300,29 @@ const DeliveryPanel = () => {
                                 View Details
                               </Button>
                             )}
-                            {orderStatus === "accepted" && (
-                              <Button
-                                variant="success"
-                                onClick={() => handleConfirmDelivery(order.orderId)}
-                                disabled={order.orderStatus === 4}
-                                className="ml-2"
-                              >
-                                Confirm Delivery
-                              </Button>
-                            )}
+                            <td>
+                              {orderStatus === "accepted" && (
+                                <div className="d-flex align-items-center">
+                                  <Button
+                                    variant="primary"
+                                    onClick={() => handleStartTracking(order)}
+                                    className="me-2"
+                                    disabled={order.orderStatus === 4}
+                                  >
+                                    Start Tracking
+                                  </Button>
+                                  <Button
+                                    variant="success"
+                                    onClick={() => handleConfirmDelivery(order.orderId)}
+                                    disabled={order.orderStatus === 4}
+                                  >
+                                    Confirm Delivery
+                                  </Button>
+                                </div>
+                              )}
+                            </td>
+
+
                           </td>
                         </tr>
                       ))}
@@ -311,13 +343,18 @@ const DeliveryPanel = () => {
 
                   <p><strong>Restaurant:</strong> {selectedOrder.restaurant?.name}</p>
                   <p><strong>Customer:</strong> {selectedOrder.customer?.firstName}</p>
-                  <p><strong>Status:</strong> {selectedOrder.orderStatus === 1 ? "Placed" : selectedOrder.orderStatus === 2 ? "Preparing" : selectedOrder.orderStatus === 3 ? "Out for Delivery" : selectedOrder.orderStatus === 4 ? "Delivered" : "unkonwn"}</p>
-                  {/* <p><strong>Address:</strong> {selectedOrder.customer.location}</p> */}
-                  <p><strong>Total Amount:</strong> {selectedOrder.totalAmount}</p>
-                  <p><strong>Order Date:</strong> {new Date(selectedOrder.createdAt).toLocaleString()}</p>
+                  <p><strong>Pickup Location:</strong> {selectedOrder.pickupLocation}</p>
+                  <p><strong>Pickup City:</strong> {selectedOrder.pickupCity}</p>
+                  <p><strong>Dropoff Location:</strong> {selectedOrder.dropoffLocation}</p>
+                  <p><strong>Dropoff City:</strong> {(selectedOrder.dropoffCity)}</p>
                   {/* <MapComponent customerLocation={[selectedOrder.customer.address.latitude, selectedOrder..customer.address.longitude]} restaurantLocation={[12.9715987, 77.594566]} /> */}
-                  <MapComponent customerLocation={[56.567, 56.4567]} restaurantLocation={[12.9715987, 77.594566]} />
-
+                 
+                 
+                 
+                  <MapComponent
+                    customerLocation={pickupLocation}
+                    restaurantLocation={dropoffLocation}
+                  />
                 </>
               )}
             </Modal.Body>
@@ -358,6 +395,48 @@ const DeliveryPanel = () => {
           <Button variant="success" onClick={handleVerifyOtp}>
             Verify OTP
           </Button>
+        </Modal.Footer>
+      </Modal>
+
+
+      {/* Start tracking modal */}
+
+
+
+      <Modal show={StartTrackingMoal} onHide={() => setStartTrackingModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Order Details</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedOrder && (
+            <>
+
+              <p><strong>Restaurant:</strong> {selectedOrder.restaurant?.name}</p>
+              <p><strong>Customer:</strong> {selectedOrder.customer?.firstName}</p>
+              <p><strong>Pickup Location:</strong> {selectedOrder.pickupLocation}</p>
+              <p><strong>Pickup City:</strong> {selectedOrder.pickupCity}</p>
+              <p><strong>Dropoff Location:</strong> {selectedOrder.dropoffLocation}</p>
+              <p><strong>Dropoff City:</strong> {(selectedOrder.dropoffCity)}</p>
+              {/* <MapComponent customerLocation={[selectedOrder.customer.address.latitude, selectedOrder..customer.address.longitude]} restaurantLocation={[12.9715987, 77.594566]} /> */}
+              <MapComponent
+               customerLocation={pickupLocation}
+               restaurantLocation={dropoffLocation}
+              />
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          {/* <Button
+            variant="success"
+            onClick={handleAcceptOrder}
+            disabled={selectedOrder.orderStatus === 4}
+          >
+            Accept Order
+          </Button> */}
+          <Button variant="secondary" onClick={() => setStartTrackingModal(false)}>
+            Cancel
+          </Button>
+
         </Modal.Footer>
       </Modal>
 

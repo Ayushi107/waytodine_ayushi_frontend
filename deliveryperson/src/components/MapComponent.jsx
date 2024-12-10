@@ -8,14 +8,21 @@ import {
 } from "@react-google-maps/api";
 import { REACT_APP_GOOGLE_MAPS_API_KEY } from "./Apiconfig"; // Replace with your API key
 
-const MapComponent = () => {
+const MapComponent = ({ customerLocation, restaurantLocation }) => {
+
+ 
+
+  console.log(customerLocation , "dropfoff");
+  console.log(restaurantLocation , "pickup");
+
+
   const { isLoaded } = useLoadScript({
     googleMapsApiKey: REACT_APP_GOOGLE_MAPS_API_KEY, // Your Google Maps API Key
   });
 
   // Dummy locations
-  const customerLocation = { lat: 21.227341, lng: 72.894547 }; // Customer location
-  const restaurantLocation = { lat: 21.23112, lng: 72.838901 }; // Restaurant location
+  // const customerLocation = { lat: 21.227341, lng: 72.894547 }; // Customer location
+  // const restaurantLocation = { lat: 21.23112, lng: 72.838901 }; // Restaurant location
 
   const [driverLocation, setDriverLocation] = useState({
     lat: 21.2297, // Initial driver location
@@ -32,20 +39,20 @@ const MapComponent = () => {
   };
 
   // Simulate driver's real-time movement
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setDriverLocation((prevLocation) => {
-        const newLocation = {
-          lat: prevLocation.lat + 0.0001, // Simulating movement
-          lng: prevLocation.lng + 0.0001,
-        };
-        console.log("Updated Driver Location:", newLocation); // Debug log
-        return newLocation;
-      });
-    }, 2000); // Update every 2 seconds
+  // useEffect(() => {
+  //   const interval = setInterval(() => {
+  //     setDriverLocation((prevLocation) => {
+  //       const newLocation = {
+  //         lat: prevLocation.lat + 0.0001, // Simulating movement
+  //         lng: prevLocation.lng + 0.0001,
+  //       };
+  //       console.log("Updated Driver Location:", newLocation); // Debug log
+  //       return newLocation;
+  //     });
+  //   }, 2000); // Update every 2 seconds
 
-    return () => clearInterval(interval);
-  }, [driverLocation]);
+  //   return () => clearInterval(interval);
+  // }, [driverLocation]);
 
   if (!isLoaded) {
     return <div>Loading map...</div>;
@@ -58,10 +65,29 @@ const MapComponent = () => {
       zoom={13}
     >
       {/* Marker for Customer Location */}
-      <Marker position={customerLocation} label="Customer" />
+      {/* <Marker position={customerLocationObj} label="Customer" /> */}
 
       {/* Marker for Restaurant Location */}
-      <Marker position={restaurantLocation} label="Restaurant" />
+      {/* <Marker position={restaurantLocationObj} label="Restaurant" />*/}
+
+
+      <Marker
+        position={customerLocation}
+        label="Customer"
+        icon={{
+          url: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png", // Blue dot icon URL
+          scaledSize: new window.google.maps.Size(40, 40) // Adjust size if needed
+        }}
+      />
+
+      <Marker
+        position={customerLocation}
+        label="Restaurant"
+        icon={{
+          url: "https://maps.google.com/mapfiles/ms/icons/red-dot.png", // Red dot icon URL
+          scaledSize: new window.google.maps.Size(40, 40) // Adjust size if needed
+        }}
+      />
 
       {/* Marker for Driver Location */}
       <Marker
@@ -87,7 +113,7 @@ const MapComponent = () => {
       )}
 
       {/* Render the blue line for the route if directions are available */}
-      {directionsResponse && (
+      {directionsResponse && directionsResponse.routes.length > 0 && (
         <DirectionsRenderer
           directions={directionsResponse}
           options={{
