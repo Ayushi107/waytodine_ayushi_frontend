@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   GoogleMap,
   Marker,
@@ -6,53 +6,145 @@ import {
   DirectionsRenderer,
   useLoadScript,
 } from "@react-google-maps/api";
-import { REACT_APP_GOOGLE_MAPS_API_KEY } from "./Apiconfig"; // Replace with your API key
+import { REACT_APP_GOOGLE_MAPS_API_KEY } from "./Apiconfig";
 
-const MapComponent = ({ customerLocation, restaurantLocation }) => {
-
- 
-
-  console.log(customerLocation , "dropfoff");
-  console.log(restaurantLocation , "pickup");
-
+const MapComponent = ({ pickupLocation, dropoffLocation, showDriver = true, orderId, deliveryPersonId }) => {
+  console.log("pickupLocation  === ", pickupLocation);
+  console.log("dropoffLocation  === ", dropoffLocation);
+  console.log("showDriver  === ", showDriver);
+  console.log("orderId  === ", orderId);
+  console.log("deliveryPersonId  === ", deliveryPersonId);
 
   const { isLoaded } = useLoadScript({
-    googleMapsApiKey: REACT_APP_GOOGLE_MAPS_API_KEY, // Your Google Maps API Key
+    googleMapsApiKey: REACT_APP_GOOGLE_MAPS_API_KEY,
   });
 
-  // Dummy locations
-  // const customerLocation = { lat: 21.227341, lng: 72.894547 }; // Customer location
-  // const restaurantLocation = { lat: 21.23112, lng: 72.838901 }; // Restaurant location
-
-  const [driverLocation, setDriverLocation] = useState({
-    lat: 21.2297, // Initial driver location
-    lng: 72.8669,
-  });
+  const [driverLocation, setDriverLocation] = useState(pickupLocation); // Initial driver location
   const [directionsResponse, setDirectionsResponse] = useState(null);
+  const [driverMarker, setDriverMarker] = useState(null);
 
-  const handleDirectionsCallback = (response) => {
-    if (response && response.status === "OK") {
-      setDirectionsResponse(response); // Save the response for rendering the route
+  const socket = useRef(null); // WebSocket reference
+  const locationInterval = useRef(null); // Reference for location-sharing interval
+
+
+  // Establish WebSocket connection and handle events
+  useEffect(() => {
+    if (showDriver) {
+      
+      socket.current = new WebSocket("wss://waytodine-spring-backend-5.onrender.com/ws/track");
+
+      socket.current.onopen = () => {
+        console.log("WebSocket connection established.");
+        startSharingLocation(); // Start sharing location
+      };
+
+      socket.current.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log("WebSocket message received:", data);
+
+          if (data.location) {
+            const [lat, lng] = data.location.split(",").map(Number);
+            if (!isNaN(lat) && !isNaN(lng)) {
+              setDriverLocation({ lat, lng });
+              console.log("Driver location updated:", { lat, lng });
+            } else {
+              console.error("Invalid location data received:", data.location);
+            }
+          }
+        } catch (err) {
+          console.error("Failed to parse WebSocket message:", err);
+        }
+      };
+
+      socket.current.onclose = () => {
+        console.log("WebSocket connection closed.");
+        stopSharingLocation(); // Stop sharing location on disconnect
+      };
+
+      socket.current.onerror = (error) => {
+        console.error("WebSocket error:", error);
+      };
+
+      return () => {
+        if (socket.current) socket.current.close();
+        stopSharingLocation(); // Cleanup
+      };
+    }
+  }, [showDriver]);
+
+  const startSharingLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          console.log("Starting location sharing...");
+          locationInterval.current = setInterval(() => {
+            navigator.geolocation.getCurrentPosition(
+              (pos) => {
+                const locationMessage = JSON.stringify({
+                  orderId,
+                  deliveryPersonId,
+                  location: `${pos.coords.latitude},${pos.coords.longitude}`,
+                });
+  
+                if (socket.current && socket.current.readyState === WebSocket.OPEN) {
+                  socket.current.send(locationMessage);
+                  console.log("Sent location data:", locationMessage);
+                }
+              },
+              (error) => console.error("Error retrieving location:", error)
+            );
+          }, 5000); // Share location every 5 seconds
+        },
+        (error) => {
+          console.error("Geolocation error:", error);
+          alert("Please enable location services.");
+        }
+      );
     } else {
-      console.error("Directions request failed:", response);
+      alert("Geolocation is not supported by your browser.");
+    }
+  };
+  
+  
+
+  // Stop sharing driver's location
+  const stopSharingLocation = () => {
+    if (locationInterval.current) {
+      clearInterval(locationInterval.current);
+      locationInterval.current = null;
+      console.log("Stopped sharing location.");
     }
   };
 
-  // Simulate driver's real-time movement
-  // useEffect(() => {
-  //   const interval = setInterval(() => {
-  //     setDriverLocation((prevLocation) => {
-  //       const newLocation = {
-  //         lat: prevLocation.lat + 0.0001, // Simulating movement
-  //         lng: prevLocation.lng + 0.0001,
-  //       };
-  //       console.log("Updated Driver Location:", newLocation); // Debug log
-  //       return newLocation;
-  //     });
-  //   }, 2000); // Update every 2 seconds
+  const handleMapLoad = (map) => {
+    if (showDriver && driverLocation) {
+      const marker = new window.google.maps.Marker({
+        position: driverLocation,
+        map: map,
+        icon: {
+          url: "https://cdn-icons-png.flaticon.com/512/2972/2972185.png", // Custom driver icon
+          scaledSize: new window.google.maps.Size(40, 40),
+        },
+      });
+      setDriverMarker(marker);
+    }
+  };
 
-  //   return () => clearInterval(interval);
-  // }, [driverLocation]);
+  const handleDirectionsCallback = (response) => {
+    if (response && response.status === "OK") {
+      setDirectionsResponse(response); // Save directions response
+    } else {
+      console.error("Failed to fetch directions:", response);
+    }
+  };
+
+  // Update driver's marker dynamically
+  useEffect(() => {
+    if (isLoaded && driverMarker && driverLocation && showDriver) {
+      driverMarker.setPosition(driverLocation);
+    }
+  }, [driverLocation, driverMarker, isLoaded, showDriver]);
 
   if (!isLoaded) {
     return <div>Loading map...</div>;
@@ -60,60 +152,40 @@ const MapComponent = ({ customerLocation, restaurantLocation }) => {
 
   return (
     <GoogleMap
-      mapContainerStyle={{ height: "400px", width: "100%" }}
-      center={driverLocation} // Center the map on the driver's location
-      zoom={13}
+      mapContainerStyle={{ width: "100%", height: "400px" }}
+      center={pickupLocation || { lat: 21.227341, lng: 72.894547 }}
+      zoom={14}
+      onLoad={handleMapLoad}
     >
-      {/* Marker for Customer Location */}
-      {/* <Marker position={customerLocationObj} label="Customer" /> */}
-
-      {/* Marker for Restaurant Location */}
-      {/* <Marker position={restaurantLocationObj} label="Restaurant" />*/}
-
-
-      <Marker
-        position={customerLocation}
-        label="Customer"
-        icon={{
-          url: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png", // Blue dot icon URL
-          scaledSize: new window.google.maps.Size(40, 40) // Adjust size if needed
-        }}
-      />
-
-      <Marker
-        position={customerLocation}
-        label="Restaurant"
-        icon={{
-          url: "https://maps.google.com/mapfiles/ms/icons/red-dot.png", // Red dot icon URL
-          scaledSize: new window.google.maps.Size(40, 40) // Adjust size if needed
-        }}
-      />
-
-      {/* Marker for Driver Location */}
-      <Marker
-        position={driverLocation}
-        label="Driver"
-        icon={{
-          url: 'https://img-cdn.thepublive.com/fit-in/1200x675/filters:format(webp)/entrackr/media/post_attachments/wp-content/uploads/2019/07/SWIGGY.jpg',  // Replace with your own image URL
-          scaledSize: new window.google.maps.Size(40, 40), // Adjust the size if needed
-        }}
-        onError={() => console.warn("Failed to load custom icon for the driver marker.")}
-      />
-
-      {/* Request directions from restaurant to customer */}
-      {!directionsResponse && (
+      {pickupLocation && (
+        <Marker
+          position={pickupLocation}
+          label="Pickup"
+          icon={{
+            url: "https://maps.google.com/mapfiles/ms/icons/green-dot.png",
+          }}
+        />
+      )}
+      {dropoffLocation && (
+        <Marker
+          position={dropoffLocation}
+          label="Dropoff"
+          icon={{
+            url: "https://maps.google.com/mapfiles/ms/icons/red-dot.png",
+          }}
+        />
+      )}
+      {pickupLocation && dropoffLocation && !directionsResponse && (
         <DirectionsService
           options={{
-            origin: restaurantLocation,
-            destination: customerLocation,
+            origin: pickupLocation,
+            destination: dropoffLocation,
             travelMode: "DRIVING",
           }}
           callback={handleDirectionsCallback}
         />
       )}
-
-      {/* Render the blue line for the route if directions are available */}
-      {directionsResponse && directionsResponse.routes.length > 0 && (
+      {directionsResponse && (
         <DirectionsRenderer
           directions={directionsResponse}
           options={{

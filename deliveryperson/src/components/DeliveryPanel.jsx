@@ -11,12 +11,13 @@ import axios from 'axios';
 import { API_BASE_URL } from './Apiconfig';
 const DeliveryPanel = () => {
   const [orderStatus, setOrderStatus] = useState('assigned');
-  
+
   const [orders, setOrders] = useState([]);
+  const [orderId, setOrderId] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState([]);
   const [modalShow, setModalShow] = useState(false);
   const [pickupLocation, setPickupLocation] = useState(null);
-  const [dropoffLocation, setDropoffLocation] = useState(null);  const [otp, setOtp] = useState(""); // For OTP input
+  const [dropoffLocation, setDropoffLocation] = useState(null); const [otp, setOtp] = useState(""); // For OTP input
   const [otpModalShow, setOtpModalShow] = useState(false); // For OTP modal visibility
   const [StartTrackingMoal, setStartTrackingModal] = useState(false);
   const [currentOrderId, setCurrentOrderId] = useState(null);
@@ -93,8 +94,17 @@ const DeliveryPanel = () => {
       const pickup = { lat: pickupCoords[0], lng: pickupCoords[1] };
       const dropoff = { lat: dropoffCoords[0], lng: dropoffCoords[1] };
 
+
+      console.log("pickup: ", pickup);
+      console.log("dropof : ", dropoff);
+
       setPickupLocation(pickup);
       setDropoffLocation(dropoff);
+      setOrderId(orderId);
+
+      console.log("pickup location in delivery panel : ", pickupLocation);
+      console.log("dropof location in delivery panel : ", dropoffLocation);
+
 
     } catch (error) {
       console.error("Error fetching order details:", error);
@@ -111,12 +121,19 @@ const DeliveryPanel = () => {
     }
   };
 
-  const handleOrderClick = (order) => {
+  const handleOrderClick = async (order) => {
     console.log(order);
 
-    fetchOrderDetails(order.orderId);
-    setModalShow(true);
+    try {
+      await fetchOrderDetails(order.orderId);
+
+      // Open the modal for viewing details
+      setModalShow(true);
+    } catch (error) {
+      console.error("Error fetching order details for viewing:", error);
+    }
   };
+
 
   const handleOrderStatusChange = (status) => {
 
@@ -207,12 +224,17 @@ const DeliveryPanel = () => {
 
   const handleStartTracking = async (order) => {
     console.log('Start tracking for order:', order.orderId);
-    const response = await axios.post(`${API_BASE_URL}Driver/get-order-details`, { DriverId: order.orderId });
-    setSelectedOrder(response.data);
-    setStartTrackingModal(true);
-    // Add your tracking logic here
-    // For example, redirect to a tracking page with order details
+
+    try {
+      await fetchOrderDetails(order.orderId);
+
+      // Open the modal for start tracking
+      setStartTrackingModal(true);
+    } catch (error) {
+      console.error("Error fetching order details for tracking:", error);
+    }
   };
+
 
 
   return (
@@ -338,37 +360,25 @@ const DeliveryPanel = () => {
               <Modal.Title>Order Details</Modal.Title>
             </Modal.Header>
             <Modal.Body>
-              {selectedOrder && (
-                <>
-
-                  <p><strong>Restaurant:</strong> {selectedOrder.restaurant?.name}</p>
-                  <p><strong>Customer:</strong> {selectedOrder.customer?.firstName}</p>
-                  <p><strong>Pickup Location:</strong> {selectedOrder.pickupLocation}</p>
-                  <p><strong>Pickup City:</strong> {selectedOrder.pickupCity}</p>
-                  <p><strong>Dropoff Location:</strong> {selectedOrder.dropoffLocation}</p>
-                  <p><strong>Dropoff City:</strong> {(selectedOrder.dropoffCity)}</p>
-                  {/* <MapComponent customerLocation={[selectedOrder.customer.address.latitude, selectedOrder..customer.address.longitude]} restaurantLocation={[12.9715987, 77.594566]} /> */}
-                 
-                 
-                 
-                  <MapComponent
-                    customerLocation={pickupLocation}
-                    restaurantLocation={dropoffLocation}
-                  />
-                </>
+              {pickupLocation && dropoffLocation ? (
+                <MapComponent
+                  pickupLocation={pickupLocation}
+                  dropoffLocation={dropoffLocation}
+                  orderId={orderId}
+                  deliveryPersonId={driver.deliveryPersonId}
+                  showDriver={false} // Don't show driver's location
+                />
+              ) : (
+                <Alert variant="warning">Loading location details...</Alert>
               )}
             </Modal.Body>
             <Modal.Footer>
-              <Button
-                variant="success"
-                onClick={handleAcceptOrder}
-                disabled={selectedOrder.orderStatus === 4}
-              >
-                Accept Order
+              <Button variant="secondary" onClick={() => setModalShow(false)}>
+                Close
               </Button>
-              <Button variant="danger" onClick={handleDeclineOrder}>Decline Order</Button>
             </Modal.Footer>
           </Modal>
+
         </Col>
       </Row>
 
@@ -405,40 +415,29 @@ const DeliveryPanel = () => {
 
       <Modal show={StartTrackingMoal} onHide={() => setStartTrackingModal(false)}>
         <Modal.Header closeButton>
-          <Modal.Title>Order Details</Modal.Title>
+          <Modal.Title>Track Delivery</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          {selectedOrder && (
-            <>
-
-              <p><strong>Restaurant:</strong> {selectedOrder.restaurant?.name}</p>
-              <p><strong>Customer:</strong> {selectedOrder.customer?.firstName}</p>
-              <p><strong>Pickup Location:</strong> {selectedOrder.pickupLocation}</p>
-              <p><strong>Pickup City:</strong> {selectedOrder.pickupCity}</p>
-              <p><strong>Dropoff Location:</strong> {selectedOrder.dropoffLocation}</p>
-              <p><strong>Dropoff City:</strong> {(selectedOrder.dropoffCity)}</p>
-              {/* <MapComponent customerLocation={[selectedOrder.customer.address.latitude, selectedOrder..customer.address.longitude]} restaurantLocation={[12.9715987, 77.594566]} /> */}
-              <MapComponent
-               customerLocation={pickupLocation}
-               restaurantLocation={dropoffLocation}
-              />
-            </>
+          {pickupLocation && dropoffLocation ? (
+            <MapComponent
+              pickupLocation={pickupLocation}
+              dropoffLocation={dropoffLocation}
+              orderId={orderId}
+              deliveryPersonId={driver.deliveryPersonId}
+              showDriver={true} // Show driver's location
+            />
+          ) : (
+            <Alert variant="warning">Loading location details...</Alert>
           )}
         </Modal.Body>
         <Modal.Footer>
-          {/* <Button
-            variant="success"
-            onClick={handleAcceptOrder}
-            disabled={selectedOrder.orderStatus === 4}
-          >
-            Accept Order
-          </Button> */}
           <Button variant="secondary" onClick={() => setStartTrackingModal(false)}>
-            Cancel
+            Close
           </Button>
-
         </Modal.Footer>
       </Modal>
+
+
 
     </Container >
   );
